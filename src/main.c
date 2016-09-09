@@ -10,13 +10,12 @@
 #include <avr/wdt.h>
 
 
-#define LED PORTB1
 #define SPEAKER PORTB3
+#define MOIST_CHK PORTB1
 
 #define set(x) |= (1<<x)
 #define clr(x) &=~(1<<x) 
 #define inv(x) ^=(1<<x)
-#define chk(var,pos) ((var) & (1<<(pos)))
 
 uint8_t awakeCounter = 0;
 
@@ -53,6 +52,13 @@ void turnItUp() {
   }
 }
 
+void checkMoist() {
+  if(bit_is_clear(PINB, MOIST_CHK)) {
+    awakeCounter = 6; // force to beep again...
+    beepOn(50);
+  }
+}
+
 int main() {
   // disable interrupts...
   cli();
@@ -72,10 +78,10 @@ int main() {
   
   // enable interrupts...
   sei();
-  
-  // setup port b and turn off led...
-  DDRB set(LED);
-  PORTB clr(LED);
+    
+  // moisture sensor as an input...
+  DDRB clr(MOIST_CHK);
+  PORTB set(MOIST_CHK);
 
   // setup port b for speaker and turn off...
   DDRB set(SPEAKER);
@@ -88,6 +94,11 @@ int main() {
   for(;;) {
     // loop here...
     nightyNight();
+    
+    if(awakeCounter > 5) {
+      checkMoist();
+    }
+
   }
   
 }
@@ -95,9 +106,5 @@ int main() {
 
 ISR(WDT_vect) {
   awakeCounter++;
-  if(awakeCounter > 10) {
-    awakeCounter = 1;
-    PORTB inv(LED);
-  }
 }
 
